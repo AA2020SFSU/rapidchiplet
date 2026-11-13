@@ -6,6 +6,7 @@ import argparse
 
 # Import RapidChiplet files
 import helpers as hlp
+import validation as val
 import booksim_wrapper as bsw
 
 ################################################################################################################
@@ -84,6 +85,8 @@ def compute_link_bandwidths(inputs, intermediates):
 	packaging = inputs["packaging"]
 	placement = inputs["placement"]
 	topology = inputs["topology"]
+	# Report PHYs whose bumps cannot even carry the non-data wires
+	val.validate_phy_bandwidths(inputs)
 	# Compute per-link bandwidths
 	link_bandwidths = {}
 	for link in topology:
@@ -93,12 +96,7 @@ def compute_link_bandwidths(inputs, intermediates):
 			if ep["type"] == "chiplet":
 				chiplet = chiplets[placement["chiplets"][ep["outer_id"]]["name"]]
 				phy = chiplet["phys"][ep["inner_id"]]
-				ac = chiplet["dimensions"]["x"] * chiplet["dimensions"]["y"]			# Chiplet area in mm^2
-				fp = chiplet["fraction_power_bumps"]									# Fraction of bumps used for power 
-				fca = phy["fraction_bump_area"]											# Fraction of bump area	use by PHY
-				pb = packaging["bump_pitch"]											# Bump pitch in mm
-				ndw = packaging["non_data_wires"]										# Number of non-data wires per link
-				lbw = int(math.floor((ac * (1-fp) * fca * (1/pb)**2) - ndw))			# Link bandwidth in bit/cycle
+				lbw = hlp.compute_phy_bandwidth(chiplet, phy, packaging)				# Link bandwidth in bit/cycle
 				link_bw = min(link_bw, lbw)
 		node_id_1 = (link["ep1"]["type"],link["ep1"]["outer_id"])
 		node_id_2 = (link["ep2"]["type"],link["ep2"]["outer_id"])
