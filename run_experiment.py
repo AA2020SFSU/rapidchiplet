@@ -1,6 +1,7 @@
 # Python modules 
 import copy as cpy
 import argparse
+import os
 
 
 # RapidChiplet modules
@@ -26,6 +27,29 @@ def split_parameters(experiment):
 	return (base_params, ranged_params)
 
 
+def value_to_suffix(value, use_full_path = False):
+	# Turn one value of a ranged parameter into a string that is safe to use in a file name.
+	# File-path parameters (e.g. "packaging_file") contain "/", which would otherwise end up
+	# in the results file name and point into a directory that does not exist.
+	if type(value) == list:
+		return "_".join([value_to_suffix(x, use_full_path) for x in value])
+	value = str(value)
+	if "/" in value or os.sep in value:
+		if not use_full_path:
+			value = os.path.splitext(os.path.basename(value))[0]
+		value = value.replace("/", "_").replace(os.sep, "_")
+	return value
+
+
+def compute_suffixes(values):
+	# Use short suffixes (file names without directory and extension) if they are unique,
+	# otherwise fall back to the full paths with separators replaced.
+	suffixes = [value_to_suffix(x) for x in values]
+	if len(set(suffixes)) < len(suffixes):
+		suffixes = [value_to_suffix(x, use_full_path = True) for x in values]
+	return ["_" if x == "" else x for x in suffixes]
+
+
 def compute_parameter_combinations(experiment, exp_name):
 	(base_params, ranged_params) = split_parameters(experiment)
 	# Create a list of all possible combinations of the ranged parameters (all single experiments)
@@ -35,9 +59,7 @@ def compute_parameter_combinations(experiment, exp_name):
 	for (ranged_param_name, ranged_param_values) in ranged_params.items():
 		new_experiments = {}
 		for (exp_name, exp_params) in experiments.items():
-			for ranged_param_value in ranged_param_values:
-				suffix = ("_".join([str(x) for x in ranged_param_value]) if type(ranged_param_value) == list else str(ranged_param_value))
-				suffix = "_" if suffix == "" else suffix
+			for (ranged_param_value, suffix) in zip(ranged_param_values, compute_suffixes(ranged_param_values)):
 				new_exp_name = exp_name + "-" + suffix
 				new_exp_params = cpy.deepcopy(exp_params)
 				new_exp_params[ranged_param_name] = ranged_param_value
