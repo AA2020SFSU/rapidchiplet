@@ -71,6 +71,17 @@ def read_required_inputs(inputs, required_inputs):
 			inputs[input_name] = read_json(design[input_name])
 			val.validation_functions[input_name](inputs)
 
+# Compute the bandwidth (in bit/cycle) of one PHY of a chiplet: the data wires that fit in the
+# PHY's share of the chiplet's signal bumps, minus the non-data wires of a link.
+# The result is zero or negative if the PHY has fewer bumps than the link needs for non-data wires.
+def compute_phy_bandwidth(chiplet, phy, packaging):
+	ac = chiplet["dimensions"]["x"] * chiplet["dimensions"]["y"]			# Chiplet area in mm^2
+	fp = chiplet["fraction_power_bumps"]									# Fraction of bumps used for power
+	fca = phy["fraction_bump_area"]											# Fraction of bump area	use by PHY
+	pb = packaging["bump_pitch"]											# Bump pitch in mm
+	ndw = packaging["non_data_wires"]										# Number of non-data wires per link
+	return int(math.floor((ac * (1-fp) * fca * (1/pb)**2) - ndw))
+
 # Compute intermediates if they are not already present
 def compute_required_intermediates(inputs, intermediates, required_intermediates):
 	for intermediate_name in required_intermediates:

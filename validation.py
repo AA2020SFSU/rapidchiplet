@@ -605,6 +605,36 @@ def validate_trace(inputs):
 		print("Note that RapidChiplet might produce incorrect results or crash when running with invalid inputs.")
 	
 		
+def validate_phy_bandwidths(inputs):
+	if not inputs["validate"]:
+		return 0
+	# Read the required inputs
+	required_inputs = ["chiplets", "packaging", "placement"]
+	hlp.read_required_inputs(inputs, required_inputs)
+	chiplets = inputs["chiplets"]
+	packaging = inputs["packaging"]
+	placement = inputs["placement"]
+	print("Validating PHY bandwidths...", end = "") if inputs["verbose"] else None
+	# Count the number of errors
+	errors = 0
+	# Every PHY of every placed chiplet must have room for at least one data wire. Otherwise
+	# the link bandwidth is zero or negative, and so are the throughput results that use it.
+	for chiplet_name in sorted(set([chiplet["name"] for chiplet in placement["chiplets"]])):
+		chiplet = chiplets[chiplet_name]
+		for (phy_id, phy) in enumerate(chiplet["phys"]):
+			bandwidth = hlp.compute_phy_bandwidth(chiplet, phy, packaging)
+			if bandwidth <= 0:
+				msg = "PHY %d of chiplet \"%s\" has a link bandwidth of %d bit/cycle. Its share of the signal bumps (bump pitch %s mm) does not fit the %d non-data wires per link. Use a larger chiplet, a smaller bump pitch, or fewer non-data wires."
+				args = (phy_id, chiplet_name, bandwidth, packaging["bump_pitch"], packaging["non_data_wires"])
+				print_validation_error(msg, args)
+				errors += 1
+	# Print validation result
+	print(" completed with %d errors." % errors) if inputs["verbose"] else None
+	if errors > 0:
+		print("Note that RapidChiplet might produce incorrect results or crash when running with invalid inputs.")
+	return errors
+
+
 validation_functions = {
 	"chiplets": validate_chiplets,
 	"packaging": validate_packaging,
