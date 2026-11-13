@@ -11,13 +11,15 @@ Clone the RapidChiplet repository:
 git clone https://github.com/spcl/rapidchiplet.git
 ```
 
-Install all requirements using pip:
+Install all requirements using pip (tested with Python 3.10 to 3.13):
 ```bash
-cd rc 
+cd rapidchiplet
 pip install -r requirements.txt
 ```
 
-Build the BookSim2 [1,2] simulator:
+Build the BookSim2 [1,2] simulator. It needs a C++ compiler, flex, bison and the
+header-only [nlohmann/json](https://github.com/nlohmann/json) library
+(e.g. `apt install flex bison nlohmann-json3-dev` on Debian/Ubuntu, `brew install flex bison nlohmann-json` on macOS):
 ```bash
 cd booksim2/src
 make
